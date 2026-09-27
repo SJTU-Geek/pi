@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>pi mobile demo</title>
+		<style>
+			body {
+				font-family: -apple-system, sans-serif;
+				margin: 1rem;
+				background: #111;
+				color: #eee;
+			}
+			button {
+				padding: 0.6rem 1rem;
+				margin: 0.25rem 0.25rem 1rem 0;
+				font-size: 1rem;
+			}
+			#log {
+				white-space: pre-wrap;
+				font-family: monospace;
+				background: #1c1c1c;
+				padding: 0.75rem;
+				border-radius: 8px;
+				min-height: 12rem;
+			}
+		</style>
+	</head>
+	<body>
+		<h2>pi embedded-node demo</h2>
+		<button id="start">Start Node runtime</button>
+		<button id="prompt" disabled>Send prompt (faux provider)</button>
+		<div id="log">log:\n</div>
+		<script>
+			const logEl = document.getElementById("log");
+			const log = (line) => {
+				logEl.textContent += line + "\n";
+			};
+			// The Capacitor global is injected by the runtime; the demo avoids a
+			// bundler by going through the legacy Plugins proxy.
+			const Nodejs = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Nodejs;
+			if (!Nodejs) {
+				log("Capacitor Nodejs plugin unavailable (open inside the app, not a plain browser).");
+			}
+
+			document.getElementById("start").addEventListener("click", async () => {
+				try {
+					Nodejs.addListener("message", (event) => {
+						const args = (event.args || []).map((a) => (typeof a === "string" ? a : JSON.stringify(a)));
+						log(`[${event.eventName}] ${args.join(" ")}`);
+						if (event.eventName === "ready") {
+							document.getElementById("prompt").disabled = false;
+						}
+					});
+					await Nodejs.start();
+					log("Nodejs.start() called (startMode: manual)");
+				} catch (error) {
+					log("start error: " + (error && error.message ? error.message : error));
+				}
+			});
+
+			document.getElementById("prompt").addEventListener("click", async () => {
+				try {
+					await Nodejs.send({ eventName: "prompt", args: ["hello from the webview"] });
+				} catch (error) {
+					log("send error: " + (error && error.message ? error.message : error));
+				}
+			});
+		</script>
+	</body>
+</html>

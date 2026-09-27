@@ -1,0 +1,10 @@
+{
+	"appId": "dev.teru.pimobile",
+	"appName": "pi-mobile-demo",
+	"webDir": "www",
+	"plugins": {
+		"Nodejs": {
+			"startMode": "manual"
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"name": "pi-mobile-demo",
+	"private": true,
+	"version": "0.0.1",
+	"description": "Capacitor scaffold for running pi inside the embedded Node.js runtime (Capawesome capacitor-nodejs, Node 18.20.4). Not part of the npm workspaces.",
+	"scripts": {
+		"build:node": "esbuild src/node-main.js --bundle --platform=node --format=cjs --target=node18 --outfile=www/nodejs/pi-bundle.js --external:bridge",
+		"smoke:node": "npm run build:node && node www/nodejs/pi-bundle.js",
+		"cap:add-android": "cap add android",
+		"cap:sync": "cap sync android",
+		"cap:open": "cap open android"
+	},
+	"dependencies": {
+		"@capacitor/android": "8.5.2",
+		"@capacitor/core": "8.5.2",
+		"@capawesome/capacitor-nodejs": "0.1.1"
+	},
+	"devDependencies": {
+		"@capacitor/cli": "8.5.2",
+		"esbuild": "0.28.2"
+	}
+}

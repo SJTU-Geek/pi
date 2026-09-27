@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">pi-mobile-demo</string>
+    <string name="title_activity_main">pi-mobile-demo</string>
+    <string name="package_name">dev.teru.pimobile</string>
+    <string name="custom_url_scheme">dev.teru.pimobile</string>
+</resources>
