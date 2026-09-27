@@ -44,7 +44,7 @@
 		"directory": "packages/server"
 	},
 	"engines": {
-		"node": ">=22.19.0"
+		"node": ">=18.20.0"
 	},
 	"dependencies": {
 		"@earendil-works/pi-ai": "workspace:*",

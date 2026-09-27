@@ -37,7 +37,7 @@
 				"pi": "dist/bundle/cli.js"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@anthropic-ai/sdk": {
@@ -488,7 +488,7 @@
 				"yaml": "2.9.0"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@earendil-works/pi-ai": {
@@ -512,7 +512,7 @@
 				"pi-ai": "dist/cli.js"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@earendil-works/pi-client": {
@@ -523,7 +523,7 @@
 				"@earendil-works/pi-protocol": "workspace:*"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@earendil-works/pi-protocol": {
@@ -534,7 +534,7 @@
 				"typebox": "1.3.7"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@earendil-works/pi-telemetry": {
@@ -542,7 +542,7 @@
 			"resolved": "https://registry.npmjs.org/@earendil-works/pi-telemetry/-/pi-telemetry-0.84.4.tgz",
 			"license": "MIT",
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@earendil-works/pi-tui": {
@@ -554,7 +554,7 @@
 				"marked": "18.0.5"
 			},
 			"engines": {
-				"node": ">=22.19.0"
+				"node": ">=18.20.0"
 			}
 		},
 		"node_modules/@google/genai": {

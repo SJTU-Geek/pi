@@ -36,16 +36,42 @@ function couldBeEmoji(segment: string): boolean {
 	);
 }
 
-// Regexes for character classification (same as string-width library)
-const zeroWidthRegex = /^(?:\p{Default_Ignorable_Code_Point}|\p{Control}|\p{Mark}|\p{Surrogate})+$/v;
-const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Mark}\p{Surrogate}]+/v;
-const nonPrintingCharRegex = /^(?:\p{Default_Ignorable_Code_Point}|\p{Control}|\p{Format}|\p{Mark}|\p{Surrogate})$/v;
-const markCharRegex = /^\p{Mark}$/v;
+// Regexes for character classification (same as string-width library).
+// The v flag (ES2024) requires Node 20+; embedded/mobile runtimes (e.g.
+// nodejs-mobile on Node 18) fall back to equivalent u-flag patterns.
+const SUPPORTS_REGEXP_V_FLAG = (() => {
+	try {
+		/\p{Mark}/v;
+		return true;
+	} catch {
+		return false;
+	}
+})();
+
+const zeroWidthRegex = new RegExp(
+	"^(?:\\p{Default_Ignorable_Code_Point}|\\p{Control}|\\p{Mark}|\\p{Surrogate})+$",
+	SUPPORTS_REGEXP_V_FLAG ? "v" : "u",
+);
+const leadingNonPrintingRegex = new RegExp(
+	"^[\\p{Default_Ignorable_Code_Point}\\p{Control}\\p{Format}\\p{Mark}\\p{Surrogate}]+",
+	SUPPORTS_REGEXP_V_FLAG ? "v" : "u",
+);
+const nonPrintingCharRegex = new RegExp(
+	"^(?:\\p{Default_Ignorable_Code_Point}|\\p{Control}|\\p{Format}|\\p{Mark}|\\p{Surrogate})$",
+	SUPPORTS_REGEXP_V_FLAG ? "v" : "u",
+);
+const markCharRegex = new RegExp("^\\p{Mark}$", SUPPORTS_REGEXP_V_FLAG ? "v" : "u");
 // Marks that terminals allocate cells for when attached to a base character.
 // This includes Unicode spacing marks and non-spacing exceptions in legacy wcwidth tables.
-const terminalSpacingMarkRegex =
-	/^(?:[\p{Spacing_Mark}--[\u1734\u302E\u302F]]|[\u065F\u0F7F\u102B\u102C\u1031\u1033-\u1035\u1038\u103A-\u103E])+$/v;
-const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
+// The u fallback rewrites the v-only set subtraction as a negative lookahead.
+const terminalSpacingMarkRegex = SUPPORTS_REGEXP_V_FLAG
+	? /^(?:[\p{Spacing_Mark}--[\u1734\u302E\u302F]]|[\u065F\u0F7F\u102B\u102C\u1031-\u1035\u1038\u103A-\u103E])+$/v
+	: /^(?:(?![\u1734\u302E\u302F])\p{Spacing_Mark}|[\u065F\u0F7F\u102B\u102C\u1031-\u1035\u1038\u103A-\u103E])+$/u;
+// RGI_Emoji is a v-only string property; the u fallback approximates it with
+// Extended_Pictographic plus ZWJ, variation selector, and skin tone modifiers.
+const rgiEmojiRegex = SUPPORTS_REGEXP_V_FLAG
+	? /^\p{RGI_Emoji}$/v
+	: /^(?:\p{Extended_Pictographic}|\u{200D}|\u{FE0F}|[\u{1F3FB}-\u{1F3FF}])+$/u;
 
 // Cache for non-ASCII strings
 const WIDTH_CACHE_SIZE = 512;

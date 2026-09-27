@@ -1,17 +1,15 @@
 import type { ChildProcess, ChildProcessByStdio } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-	chmodSync,
-	existsSync,
-	globSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	rmSync,
-	statSync,
-	writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+
+// fs.globSync() is Node 22+; embedded/mobile runtimes (e.g. nodejs-mobile)
+// top out at Node 18, so reimplement the subset used here on top of
+// recursive readdir + minimatch.
+function globSync(pattern: string, options: { cwd: string }): string[] {
+	const entries = readdirSync(options.cwd, { recursive: true, encoding: "utf8" });
+	return entries.filter((entry) => minimatch(entry.split(sep).join("/"), pattern));
+}
 
 function getEnv(): NodeJS.ProcessEnv {
 	if (process.platform !== "linux" || Object.keys(process.env).length > 0) {

@@ -16,6 +16,6 @@ process.emitWarning = (() => {}) as typeof process.emitWarning;
 
 // Configure undici's global dispatcher before provider SDKs issue requests.
 // Runtime settings are applied once SettingsManager has loaded global/project settings.
-configureHttpDispatcher();
+await configureHttpDispatcher();
 
 main(process.argv.slice(2));

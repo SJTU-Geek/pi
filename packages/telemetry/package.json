@@ -38,7 +38,7 @@
 		"directory": "packages/telemetry"
 	},
 	"engines": {
-		"node": ">=22.19.0"
+		"node": ">=18.20.0"
 	},
 	"devDependencies": {
 		"@types/node": "22.19.19",

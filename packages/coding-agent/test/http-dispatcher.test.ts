@@ -99,7 +99,7 @@ describe("http dispatcher", () => {
 			throw new Error("Connection captured");
 		});
 
-		configureHttpDispatcher();
+		await configureHttpDispatcher();
 		await expect(undici.fetch("https://example.invalid")).rejects.toThrow();
 
 		expect(connectSpy).toHaveBeenCalledWith(

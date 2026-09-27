@@ -1,9 +1,34 @@
 import { EventEmitter } from "node:events";
-import * as undici from "undici";
+import type * as undici from "undici";
 
 export const DEFAULT_HTTP_IDLE_TIMEOUT_MS = 300_000;
 // Node's 250ms default can terminate valid connection attempts on high-latency routes.
 const DEFAULT_AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS = 2_000;
+
+// npm undici 8 officially requires Node >= 22.19 and crashes at import time on
+// Node 18 ("File is not defined"; File is a Node 20+ global). Older embedded
+// runtimes (e.g. Node 18 via nodejs-mobile) therefore skip the custom
+// dispatcher entirely and use the runtime's built-in fetch; HTTP(S)_PROXY
+// handling is unavailable there.
+const NODE_MAJOR_VERSION = Number.parseInt(process.versions.node, 10);
+
+type UndiciModule = typeof import("undici");
+let undiciModulePromise: Promise<UndiciModule | null> | undefined;
+let warnedNoUndici = false;
+
+function warnNoUndici(reason: string): void {
+	if (warnedNoUndici) return;
+	warnedNoUndici = true;
+	console.warn(`pi: ${reason}, skipping proxy dispatcher (using built-in fetch)`);
+}
+
+function loadUndici(): Promise<UndiciModule | null> {
+	undiciModulePromise ??= import("undici")
+		// Bundled CJS interop may only expose the module on `default`.
+		.then((mod) => ((mod as { default?: UndiciModule }).default ?? mod) as UndiciModule)
+		.catch(() => null);
+	return undiciModulePromise;
+}
 
 export const HTTP_IDLE_TIMEOUT_CHOICES = [
 	{ label: "30 sec", timeoutMs: 30_000 },
@@ -61,27 +86,36 @@ function withUndiciErrorListener<T extends undici.Dispatcher>(dispatcher: T): T 
 	return dispatcher;
 }
 
-function createUndiciClient(origin: string | URL, options: object): undici.Dispatcher {
+function createUndiciClient(undici: UndiciModule, origin: string | URL, options: object): undici.Dispatcher {
 	return withUndiciErrorListener(new undici.Client(origin, options as undici.Client.Options));
 }
 
-function createUndiciOriginDispatcher(origin: string | URL, options: object): undici.Dispatcher {
+function createUndiciOriginDispatcher(undici: UndiciModule, origin: string | URL, options: object): undici.Dispatcher {
 	const dispatcherOptions = options as undici.Pool.Options;
 	if (dispatcherOptions.connections === 1) {
-		return createUndiciClient(origin, dispatcherOptions);
+		return createUndiciClient(undici, origin, dispatcherOptions);
 	}
 	return withUndiciErrorListener(
 		new undici.Pool(origin, {
 			...dispatcherOptions,
-			factory: createUndiciClient,
+			factory: (origin2, options2) => createUndiciClient(undici, origin2, options2),
 		}),
 	);
 }
 
-export function configureHttpDispatcher(timeoutMs: number = DEFAULT_HTTP_IDLE_TIMEOUT_MS): void {
+export async function configureHttpDispatcher(timeoutMs: number = DEFAULT_HTTP_IDLE_TIMEOUT_MS): Promise<void> {
 	const normalizedTimeoutMs = parseHttpIdleTimeoutMs(timeoutMs);
 	if (normalizedTimeoutMs === undefined) {
 		throw new Error(`Invalid HTTP idle timeout: ${String(timeoutMs)}`);
+	}
+	if (NODE_MAJOR_VERSION < 20) {
+		warnNoUndici(`Node ${process.versions.node} < 20`);
+		return;
+	}
+	const undici = await loadUndici();
+	if (!undici) {
+		warnNoUndici("undici unavailable");
+		return;
 	}
 	const dispatcher = withUndiciErrorListener(
 		new undici.EnvHttpProxyAgent({
@@ -91,8 +125,8 @@ export function configureHttpDispatcher(timeoutMs: number = DEFAULT_HTTP_IDLE_TI
 				autoSelectFamilyAttemptTimeout: DEFAULT_AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS,
 			},
 			headersTimeout: normalizedTimeoutMs,
-			clientFactory: createUndiciClient,
-			factory: createUndiciOriginDispatcher,
+			clientFactory: (origin, options) => createUndiciClient(undici, origin, options),
+			factory: (origin, options) => createUndiciOriginDispatcher(undici, origin, options),
 		}),
 	);
 	undici.setGlobalDispatcher(dispatcher);

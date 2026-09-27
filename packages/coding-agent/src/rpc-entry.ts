@@ -8,6 +8,6 @@ process.env.PI_CODING_AGENT = "true";
 process.env.AI_AGENT = "pi";
 process.emitWarning = (() => {}) as typeof process.emitWarning;
 
-configureHttpDispatcher();
+await configureHttpDispatcher();
 
 main(["--mode", "rpc", ...process.argv.slice(2)]);

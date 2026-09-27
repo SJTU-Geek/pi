@@ -77,7 +77,7 @@ const require = createRequire(import.meta.url);
 
 const isNodeSeaBinary =
 	("sea" in process.features && process.features.sea === true) ||
-	process.getBuiltinModule("node:sea")?.isSea() === true;
+	(typeof process.getBuiltinModule === "function" && process.getBuiltinModule("node:sea")?.isSea() === true);
 declare const PI_BUNDLED_NODE: boolean;
 const isBundledNode = typeof PI_BUNDLED_NODE !== "undefined" && PI_BUNDLED_NODE;
 const isTypeScriptSourceRuntime = !isBunBinary && path.extname(fileURLToPath(import.meta.url)) === ".ts";
