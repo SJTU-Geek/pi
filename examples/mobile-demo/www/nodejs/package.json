@@ -1,1 +1,5 @@
-{ "name": "pi-node-demo", "private": true, "main": "pi-bundle.js" }
+{
+	"name": "pi-mobile-demo-node",
+	"private": true,
+	"main": "pi-bundle.js"
+}

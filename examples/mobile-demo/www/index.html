@@ -11,10 +11,18 @@
 				background: #111;
 				color: #eee;
 			}
+			h2 {
+				margin: 0.2rem 0 0.6rem;
+			}
 			button {
 				padding: 0.6rem 1rem;
 				margin: 0.25rem 0.25rem 1rem 0;
 				font-size: 1rem;
+			}
+			#status {
+				font-weight: bold;
+				color: #8cf;
+				margin-bottom: 0.5rem;
 			}
 			#log {
 				white-space: pre-wrap;
@@ -22,48 +30,80 @@
 				background: #1c1c1c;
 				padding: 0.75rem;
 				border-radius: 8px;
-				min-height: 12rem;
+				min-height: 14rem;
+				font-size: 0.85rem;
 			}
 		</style>
 	</head>
 	<body>
-		<h2>pi embedded-node demo</h2>
-		<button id="start">Start Node runtime</button>
-		<button id="prompt" disabled>Send prompt (faux provider)</button>
-		<div id="log">log:\n</div>
+		<h2>pi coding-agent on embedded Node.js</h2>
+		<div id="status">waiting for Node runtime…</div>
+		<button id="prompt" disabled>Run prompt again</button>
+		<div id="log"></div>
 		<script>
+			const statusEl = document.getElementById("status");
 			const logEl = document.getElementById("log");
+			const promptBtn = document.getElementById("prompt");
+			let firstRun = true;
 			const log = (line) => {
 				logEl.textContent += line + "\n";
+				window.scrollTo(0, document.body.scrollHeight);
 			};
-			// The Capacitor global is injected by the runtime; the demo avoids a
-			// bundler by going through the legacy Plugins proxy.
+
 			const Nodejs = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Nodejs;
 			if (!Nodejs) {
-				log("Capacitor Nodejs plugin unavailable (open inside the app, not a plain browser).");
+				statusEl.textContent = "Capacitor Nodejs plugin unavailable (open inside the app).";
 			}
 
-			document.getElementById("start").addEventListener("click", async () => {
-				try {
-					Nodejs.addListener("message", (event) => {
-						const args = (event.args || []).map((a) => (typeof a === "string" ? a : JSON.stringify(a)));
-						log(`[${event.eventName}] ${args.join(" ")}`);
-						if (event.eventName === "ready") {
-							document.getElementById("prompt").disabled = false;
-						}
-					});
-					await Nodejs.start();
-					log("Nodejs.start() called (startMode: manual)");
-				} catch (error) {
-					log("start error: " + (error && error.message ? error.message : error));
-				}
-			});
+			function sendPrompt() {
+				promptBtn.disabled = true;
+				statusEl.textContent = "running prompt…";
+				logEl.textContent = "";
+				Nodejs.send({ eventName: "prompt", args: ["Create the demo file, then tell me it worked."] }).catch(
+					(error) => log("send error: " + (error && error.message ? error.message : error)),
+				);
+			}
 
-			document.getElementById("prompt").addEventListener("click", async () => {
-				try {
-					await Nodejs.send({ eventName: "prompt", args: ["hello from the webview"] });
-				} catch (error) {
-					log("send error: " + (error && error.message ? error.message : error));
+			Nodejs.addListener("message", (event) => {
+				const args = (event.args || []).map((a) => (typeof a === "string" ? a : JSON.stringify(a)));
+				switch (event.eventName) {
+					case "ready":
+						statusEl.textContent = "Node runtime ready — starting demo";
+						log("[ready] " + args.join(" "));
+						if (firstRun) {
+							firstRun = false;
+							setTimeout(sendPrompt, 300);
+						} else {
+							promptBtn.disabled = false;
+						}
+						break;
+					case "delta":
+						logEl.textContent += args.join(" ");
+						window.scrollTo(0, document.body.scrollHeight);
+						break;
+					case "done":
+						log("\n[done] " + args.join(" "));
+						statusEl.textContent = "prompt finished ✓";
+						promptBtn.disabled = false;
+						break;
+					case "tool_start":
+						log("[tool] " + args.join(" "));
+						break;
+					case "tool_end":
+						log("[tool result] " + args.join(" "));
+						break;
+					case "verify":
+						log("[verify] " + args.join(" "));
+						statusEl.textContent =
+							args.join(" ").includes("NOT") ? "verify FAILED ✗" : "verified on disk ✓";
+						break;
+					case "error":
+						log("[error] " + args.join(" "));
+						statusEl.textContent = "error ✗";
+						promptBtn.disabled = false;
+						break;
+					default:
+						log(`[${event.eventName}] ${args.join(" ")}`);
 				}
 			});
 		</script>

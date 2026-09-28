@@ -1,21 +1,50 @@
 import { eastAsianWidth } from "get-east-asian-width";
 
-// segmenters (shared instance)
-const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-const wordSegmenter = new Intl.Segmenter(undefined, { granularity: "word" });
+// segmenters (shared instance). Embedded runtimes may be built without Intl
+// (nodejs-mobile has no Intl global), so fall back to minimal segmenters:
+// graphemes split per code point, words split on whitespace.
+interface MinimalSegmentData {
+	segment: string;
+	index?: number;
+}
+function makeSegmenter(
+	fallback: (text: string) => Iterable<MinimalSegmentData>,
+	granularity: "grapheme" | "word",
+): Intl.Segmenter | { segment: (text: string) => Iterable<MinimalSegmentData> } {
+	if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+		return new Intl.Segmenter(undefined, { granularity });
+	}
+	return { segment: fallback };
+}
+const graphemeSegmenter = makeSegmenter(function* (text) {
+	let index = 0;
+	for (const segment of Array.from(text)) {
+		yield { segment, index };
+		index += segment.length;
+	}
+}, "grapheme");
+const wordSegmenter = makeSegmenter(function* (text) {
+	let index = 0;
+	for (const word of text.split(/(\s+)/)) {
+		if (word.length > 0) {
+			yield { segment: word, index };
+			index += word.length;
+		}
+	}
+}, "word");
 
 /**
  * Get the shared grapheme segmenter instance.
  */
 export function getGraphemeSegmenter(): Intl.Segmenter {
-	return graphemeSegmenter;
+	return graphemeSegmenter as Intl.Segmenter;
 }
 
 /**
  * Get the shared word segmenter instance.
  */
 export function getWordSegmenter(): Intl.Segmenter {
-	return wordSegmenter;
+	return wordSegmenter as Intl.Segmenter;
 }
 
 /**
@@ -38,15 +67,22 @@ function couldBeEmoji(segment: string): boolean {
 
 // Regexes for character classification (same as string-width library).
 // The v flag (ES2024) requires Node 20+; embedded/mobile runtimes (e.g.
-// nodejs-mobile on Node 18) fall back to equivalent u-flag patterns.
-const SUPPORTS_REGEXP_V_FLAG = (() => {
-	try {
-		/\p{Mark}/v;
-		return true;
-	} catch {
-		return false;
-	}
-})();
+// nodejs-mobile on Node 18) fall back to equivalent u-flag patterns. Mobile
+// builds define PI_MOBILE_REGEXP_BASELINE=true to fold the v branch out at
+// bundle time (their V8 compiles every regex eagerly and lacks PropList
+// property escapes, so neither branch may contain v literals).
+declare const PI_MOBILE_REGEXP_BASELINE: boolean | undefined;
+const SUPPORTS_REGEXP_V_FLAG =
+	PI_MOBILE_REGEXP_BASELINE === true
+		? false
+		: (() => {
+				try {
+					/\p{Mark}/v;
+					return true;
+				} catch {
+					return false;
+				}
+			})();
 
 const zeroWidthRegex = new RegExp(
 	"^(?:\\p{Default_Ignorable_Code_Point}|\\p{Control}|\\p{Mark}|\\p{Surrogate})+$",
