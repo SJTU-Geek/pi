@@ -227,6 +227,10 @@ async function handlePrompt(text: string): Promise<void> {
 		post("error", "prompt already running");
 		return;
 	}
+	if (!session) {
+		post("error", "session not ready");
+		return;
+	}
 	running = true;
 	lastText = "";
 	try {
