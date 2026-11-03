@@ -83,7 +83,12 @@ function commonBuildOptions() {
 		absWorkingDir: repoRoot,
 		banner,
 		bundle: true,
-		define: { PI_BUNDLED_NODE: "true" },
+		define: {
+			PI_BUNDLED_NODE: "true",
+			// Desktop Node 22+ supports the RegExp v flag; pi-tui folds its u-flag
+			// fallback branch out when the mobile baseline is off.
+			PI_MOBILE_REGEXP_BASELINE: "false",
+		},
 		external: ["@silvia-odwyer/photon-node"],
 		format: "esm",
 		legalComments: "none",

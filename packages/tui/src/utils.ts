@@ -73,7 +73,7 @@ function couldBeEmoji(segment: string): boolean {
 // property escapes, so neither branch may contain v literals).
 declare const PI_MOBILE_REGEXP_BASELINE: boolean | undefined;
 const SUPPORTS_REGEXP_V_FLAG =
-	PI_MOBILE_REGEXP_BASELINE === true
+	typeof PI_MOBILE_REGEXP_BASELINE !== "undefined" && PI_MOBILE_REGEXP_BASELINE === true
 		? false
 		: (() => {
 				try {
